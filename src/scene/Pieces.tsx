@@ -94,7 +94,7 @@ export function buildPieces(pieces: Piece[]) {
   return out;
 }
 
-export function Pieces({ pieces, shadows = false }: { pieces: Piece[]; shadows?: boolean }) {
+export function Pieces({ pieces, shadows = false, materials }: { pieces: Piece[]; shadows?: boolean; materials?: Partial<Record<Mat, THREE.Material>> }) {
   const groups = useMemo(() => buildPieces(pieces), [pieces]);
   return (
     <>
@@ -102,7 +102,7 @@ export function Pieces({ pieces, shadows = false }: { pieces: Piece[]; shadows?:
         <mesh
           key={mat}
           geometry={geo}
-          material={PIECE_MATS[mat]}
+          material={materials?.[mat] ?? PIECE_MATS[mat]}
           castShadow={shadows && mat !== 'glow' && mat !== 'glass'}
           receiveShadow={mat !== 'glow'}
           raycast={() => null}

@@ -105,6 +105,7 @@ export function Header() {
         </form>
 
         <nav aria-label="Explorer tools" className="no-scrollbar -mx-1 flex w-full items-center gap-0.5 overflow-x-auto md:ml-auto md:w-auto">
+          <ToolButton icon="eye" label="Gallery" onClick={() => set({ presentation: 'gallery' })} />
           {panelBtn('filters', 'filter', 'Filters', activeFilterCount(filters))}
           {panelBtn('sun', 'sun', 'Sun path')}
           <ToolButton icon="status" label="Status" active={statusColors} onClick={() => set({ statusColors: !statusColors })} />

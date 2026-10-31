@@ -304,7 +304,7 @@ export function LiftUI() {
           </motion.div>
         )}
       </AnimatePresence>
-      {nearLift && !lift && !touring && (
+      {nearLift && !lift && !touring && useStore.getState().currentRoom === 'Lift lobby' && (
         <div className="pointer-events-auto absolute left-3 top-1/2 z-20 -translate-y-1/2">
           <LiftPanelInline />
         </div>

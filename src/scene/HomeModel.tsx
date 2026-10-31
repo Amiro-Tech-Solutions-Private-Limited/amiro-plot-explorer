@@ -10,6 +10,7 @@ import { useStore } from '../store/useStore';
 import { Boxes, type IBox } from './Boxes';
 import { Pieces } from './Pieces';
 import { floorTexture, surfaceTexture } from './textures';
+import { ReferenceFurniture } from './ReferenceFurniture';
 
 /** Floor material whose UVs come from the instance's plan position, so tiles stay 1:1 in every room. */
 function planarFloor(kind: 'tile' | 'wood' | 'wet', roughness: number) {
@@ -111,7 +112,7 @@ export function HomeModel({
       <Boxes boxes={built.sill} material={MATS.skirt} />
       <Boxes boxes={built.frame} material={MATS.frame} />
       <Boxes boxes={built.rail} material={MATS.rail} />
-      <Pieces pieces={built.pieces} shadows={castShadow} />
+      {detail && !open && castShadow && t.id === 'northpark' ? <ReferenceFurniture flat={flat} pieces={built.pieces} shadows={castShadow} /> : <Pieces pieces={built.pieces} shadows={castShadow} />}
       <Boxes boxes={built.glass} material={MATS.glass} />
     </group>
   );

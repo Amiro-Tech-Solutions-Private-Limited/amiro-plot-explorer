@@ -63,6 +63,7 @@ export function HomeExperience() {
         <button className="home-back" onClick={() => { stopTour(); useStore.getState().setMode('orbit'); }} aria-label="Back to property"><Icon name="exit" size={17} /></button>
         <div className="home-brand"><span>AMIRO <i>/</i> NORTH PARK</span><strong>{unitOf(flat).label} <span>Residence {flat.id}</span></strong></div>
         <div className="home-address">{towerName(flat.tower)}<span>Floor {flat.floor} · {theme.name}</span></div>
+        <button className="home-gallery-link" onClick={() => { stopTour(); set({ presentation: 'gallery' }); }}>Gallery ↗</button>
         <button className="home-icon" onClick={fullscreen} aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
       </header>
       {!touring && !designMode && <div className="home-room-title"><span>YOUR PRIVATE VIEWING</span><h1>{currentRoom ?? 'Welcome home'}</h1><p>{room ? `${room.w.toFixed(1)} × ${room.h.toFixed(1)} m · ${night ? 'Evening ambience' : 'Natural daylight'}` : 'Explore at your own pace'}</p></div>}

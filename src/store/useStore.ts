@@ -34,6 +34,7 @@ export interface VoiceSettings {
 const computeMatch = (f: Filters) => new Set(PROJECT.flats.filter((x) => matches(x, f)).map((x) => x.id));
 
 interface State {
+  presentation: 'gallery' | 'interactive';
   mode: Mode;
   panel: Panel;
   selectedId: string | null;
@@ -99,13 +100,14 @@ interface State {
 const aspect = () => (typeof window === 'undefined' ? 1.6 : window.innerWidth / window.innerHeight);
 
 export const useStore = create<State>((set, get) => ({
+  presentation: 'interactive',
   mode: 'orbit',
   panel: null,
   selectedId: null,
   hoveredId: null,
   filters: DEFAULT_FILTERS,
   matchSet: computeMatch(DEFAULT_FILTERS),
-  statusColors: true,
+  statusColors: false,
   units: 'sqft',
   sun: { date: todayIST(), minutes: 10 * 60, playing: false },
   floors: { tower: 'A1', isolated: null },
@@ -254,6 +256,7 @@ const MODES_IN_URL: Mode[] = ['orbit', 'plan', 'floors'];
 
 export function hydrateFromUrl() {
   const q = new URLSearchParams(window.location.search);
+  useStore.setState({ presentation: q.get('view') === 'gallery' ? 'gallery' : 'interactive' });
   const D = DEFAULT_FILTERS;
   const filters: Filters = {
     towers: parseList<TowerId>(q.get('tw'), PROJECT.towers.map((t) => t.id)),
@@ -271,7 +274,7 @@ export function hydrateFromUrl() {
   const flat = q.get('flat');
   const mode = q.get('mode') as Mode | null;
   const units = q.get('u') === 'm2' ? 'm2' : 'sqft';
-  useStore.setState({ filters, matchSet: computeMatch(filters), units, statusColors: q.get('st') !== '0' });
+  useStore.setState({ filters, matchSet: computeMatch(filters), units, statusColors: q.get('st') === '1' });
   const flatId = flat && FLAT_BY_ID.has(flat.toUpperCase()) ? flat.toUpperCase() : null;
   const lay = q.get('lay');
   if (flatId && lay && lay.length < 8000) {
@@ -289,6 +292,7 @@ export function startUrlSync() {
       const f = s.filters;
       const D = DEFAULT_FILTERS;
       const params: Record<string, string | null> = {
+        view: s.presentation === 'gallery' ? 'gallery' : '3d',
         flat: s.selectedId,
         mode: MODES_IN_URL.includes(s.mode) && s.mode !== 'orbit' ? s.mode : null,
         tw: csv(f.towers),
@@ -303,7 +307,7 @@ export function startUrlSync() {
         vs: f.vastu ? '1' : null,
         hi: f.high ? '1' : null,
         u: s.units === 'm2' ? 'm2' : null,
-        st: s.statusColors ? null : '0',
+        st: s.statusColors ? '1' : null,
       };
       const q = new URLSearchParams();
       for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);

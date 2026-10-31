@@ -677,7 +677,7 @@ export function furnish(layout: FlatLayout, profile: InteriorProfile, mode: 'sam
         anchors.host = { ...host, ry: host.ry + Math.PI };
         const op = opposite(sEdge);
         T('tv');
-        tvWall(wall(out, room, op, 2.8), t, profile.accent);
+        tvWall(wall(out, room, op, 2.8), np ? { ...t, accentWall: t.walls[0] } : t, np ? 'paint' : profile.accent);
         ac(free.find((e) => e !== sEdge && e !== op));
         T('plant');
         const [px, pz] = wall(out, room, sEdge, 0.4, 0.02).map(0.1, 0.3);

@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Scene } from './scene/Scene';
 import { Header } from './ui/Header';
 import { FiltersPanel } from './ui/FiltersPanel';
 import { SunPanel } from './ui/SunPanel';
@@ -17,6 +16,8 @@ import { hydrateFromUrl, startUrlSync, useStore } from './store/useStore';
 import { isMobile } from './store/hooks';
 import { sunTimes } from './lib/sun';
 import { HomeExperience } from './ui/HomeExperience';
+import { ProjectGallery } from './ui/ProjectGallery';
+const Scene = lazy(() => import('./scene/Scene').then(module => ({ default: module.Scene })));
 
 function useSunPlayback() {
   const playing = useStore((s) => s.sun.playing);
@@ -40,6 +41,7 @@ function useSunPlayback() {
 }
 
 export default function App() {
+  const presentation = useStore((s) => s.presentation);
   const panel = useStore((s) => s.panel);
   const mode = useStore((s) => s.mode);
   const ready = useStore((s) => s.ready);
@@ -65,6 +67,7 @@ export default function App() {
     }, 600);
     const onKey = (e: KeyboardEvent) => {
       const s = useStore.getState();
+      if (s.presentation === 'gallery') return;
       const tgt = e.target as HTMLElement | null;
       if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT')) return;
       const immersiveNow = s.mode === 'walk' || s.mode === 'interior' || s.mode === 'balcony';
@@ -105,10 +108,12 @@ export default function App() {
 
   useSunPlayback();
 
+  if (presentation === 'gallery') return <ProjectGallery />;
+
   return (
     <div className="fixed inset-0 overflow-hidden bg-slate-200 font-sans text-slate-900">
       <div className="absolute inset-0">
-        <Scene />
+        <Suspense fallback={null}><Scene /></Suspense>
       </div>
 
       <div className="pointer-events-none absolute inset-0">
