@@ -2,6 +2,9 @@ import { useStore } from '../store/useStore';
 import { runtime } from '../store/runtime';
 import { narrator, readingTime } from './narrator';
 import type { Beat, Waypoint } from './floor';
+import { floorNav } from './floor';
+import { FLAT_BY_ID } from '../data/project';
+import { blockedAt, nearestFree } from './nav';
 
 let play = 0;
 let serial = 0;
@@ -112,11 +115,22 @@ export function togglePause() {
 function jumpTo(i: number) {
   const s = runtime.tourAll[i];
   if (!s) return;
+  const state = useStore.getState();
+  const flat = state.selectedId ? FLAT_BY_ID.get(state.selectedId) : undefined;
+  if (state.mode === 'interior' && flat) {
+    const grid = floorNav(flat.tower, flat.floor, state.furnishing);
+    if (blockedAt(grid, s.x, s.z)) {
+      const free = nearestFree(grid, s.x, s.z);
+      if (!free) return;
+      [s.x, s.z] = free;
+    }
+  }
   endBeats();
   narrator.cancel();
   runtime.player.x = s.x;
   runtime.player.z = s.z;
   runtime.tourIdx = i;
+  runtime.tourCap = -1;
   runtime.tourWait = 0;
   const t = useStore.getState().tour;
   if (t?.paused) useStore.setState({ tour: { ...t, paused: false } });

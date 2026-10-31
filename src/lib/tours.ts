@@ -2,11 +2,13 @@ import type { Flat, TowerId } from '../data/types';
 import { PROJECT, TOWER_BY_ID, towerName, unitOf } from '../data/project';
 import { CLUB, GATE_X, POOL, RING, SITE, TRACK, ZONES } from '../data/site';
 import { localToWorld, TOWER_HZ } from './geometry';
-import { flatXform, planToWorldXZ } from './interiorFrame';
-import { roomAt, route } from './route';
+import { flatXform, planToWorldXZ, worldToPlan } from './interiorFrame';
+import { roomAt } from './route';
 import { roomSize } from './format';
 import { DIR_LONG, isVastuIdeal, roomDirection } from './vastu';
-import { doorPoints, floorFlats, floorRoute, liftFront, type Beat, type Waypoint } from './floor';
+import { doorPoints, floorFlats, floorNav, liftFront, type Beat, type Waypoint } from './floor';
+import { blockedAt } from './nav';
+import { useStore } from '../store/useStore';
 import { flatSay, flatSummarySay, floorIntroSay, roomBeats, roomSay } from './narration';
 
 export type { Waypoint };
@@ -20,6 +22,8 @@ const BLURB: Record<string, string> = {
   study: 'Study — perfect for work from home',
   lounge: 'Family lounge',
   pooja: 'Pooja room',
+  toilet: 'Bathroom with anti-skid flooring and sanitary fittings',
+  utility: 'Utility area with washing machine connections',
 };
 
 export function roomCaption(flat: Flat, name: string, units: 'sqft' | 'm2' = 'sqft') {
@@ -31,12 +35,12 @@ export function roomCaption(flat: Flat, name: string, units: 'sqft' | 'm2' = 'sq
   return `${name} · ${roomSize(src.w, src.h, units)} · ${DIR_LONG[d]}${ok ? ' ✓ Vastu' : ''}${blurb ? ` — ${blurb}` : ''}`;
 }
 
-const ORDER = ['foyer', 'living', 'balcony', 'dining', 'kitchen', 'bed', 'study', 'lounge'];
+const ORDER = ['foyer', 'living', 'balcony', 'dining', 'kitchen', 'utility', 'bed', 'toilet', 'study', 'lounge', 'pooja'];
 
 /** Ordered rooms worth showing in a flat walk-through. */
 function showRooms(flat: Flat, short: boolean) {
   const L = flatXform(flat).layout;
-  const keep = short ? ['living', 'balcony'] : ORDER;
+  const keep = short ? ['living', 'balcony', 'toilet'] : ORDER;
   return L.rooms
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => keep.includes(r.kind) && !(r.kind === 'balcony' && r.w * r.h < 8))
@@ -45,18 +49,40 @@ function showRooms(flat: Flat, short: boolean) {
 
 function roomSteps(flat: Flat, fromRoom: number, short: boolean): { steps: Waypoint[]; last: number } {
   const xf = flatXform(flat);
-  const L = xf.layout;
   let cur = fromRoom;
   const steps: Waypoint[] = [];
   for (const { r, i } of showRooms(flat, short)) {
     if (i === cur && r.kind === 'foyer') continue;
-    const pts = route(L, cur, i);
-    if (!pts.length) pts.push({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
-    pts.forEach((p, k) => {
-      const [x, z] = planToWorldXZ(xf, p.x, p.y);
-      const last = k === pts.length - 1;
-      steps.push(last ? { x, z, caption: roomCaption(flat, r.name), say: roomSay(flat, r.name), beats: roomBeats(flat, r.name, short), pause: 0.6 } : { x, z });
-    });
+    const grid = floorNav(flat.tower, flat.floor, useStore.getState().furnishing);
+    const [cx, cz] = planToWorldXZ(xf, r.x + r.w / 2, r.y + r.h / 2);
+    const corners = [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]].map(([x, y]) => planToWorldXZ(xf, x, y));
+    const minCol = Math.max(0, Math.floor((Math.min(...corners.map(([x]) => x)) - grid.x0) / grid.cell));
+    const maxCol = Math.min(grid.w - 1, Math.ceil((Math.max(...corners.map(([x]) => x)) - grid.x0) / grid.cell));
+    const minRow = Math.max(0, Math.floor((Math.min(...corners.map(([, z]) => z)) - grid.z0) / grid.cell));
+    const maxRow = Math.min(grid.h - 1, Math.ceil((Math.max(...corners.map(([, z]) => z)) - grid.z0) / grid.cell));
+    let spot: { x: number; z: number; distance: number } | null = null;
+    // Search only this room: a nearest-free search across walls can land in the corridor.
+    for (let j = minRow; j <= maxRow; j++) {
+      for (let k = minCol; k <= maxCol; k++) {
+        if (grid.occ[j * grid.w + k]) continue;
+        const x = grid.x0 + (k + 0.5) * grid.cell;
+        const z = grid.z0 + (j + 0.5) * grid.cell;
+        const p = worldToPlan(xf, x, z);
+        if (p.x < r.x + 0.28 || p.x > r.x + r.w - 0.28 || p.y < r.y + 0.28 || p.y > r.y + r.h - 0.28) continue;
+        const distance = Math.hypot(x - cx, z - cz);
+        if (!spot || distance < spot.distance) spot = { x, z, distance };
+      }
+    }
+    if (spot) {
+      const { x, z } = spot;
+      steps.push({ x, z, present: true, caption: roomCaption(flat, r.name), say: roomSay(flat, r.name), beats: roomBeats(flat, r.name, short), pause: 0.6 });
+    } else {
+      // A fully obstructed custom room can still be shown from the previous clear stop.
+      const previous = steps[steps.length - 1];
+      const entry = doorPoints(flat).inside;
+      const [x, z] = previous ? [previous.x, previous.z] : entry;
+      if (!blockedAt(grid, x, z)) steps.push({ x, z, present: true, caption: roomCaption(flat, r.name), beats: roomBeats(flat, r.name, short), pause: 0.6 });
+    }
     cur = i;
   }
   return { steps, last: cur };
@@ -77,8 +103,7 @@ export function floorTour(tower: TowerId, floor: number, from?: { x: number; z: 
   const t = TOWER_BY_ID.get(tower)!;
   const flats = floorFlats(tower, floor);
   const lf = liftFront(t, floor);
-  const lead = from ? floorRoute(tower, floor, from, null) : [];
-  const steps: Waypoint[] = [...lead, { x: lf.x, z: lf.z, caption: `${towerName(tower)} · Floor ${floor}`, say: floorIntroSay(tower, floor, flats), pause: 0.8 }];
+  const steps: Waypoint[] = [{ x: lf.x, z: lf.z, present: true, caption: `${towerName(tower)} · Floor ${floor}`, say: floorIntroSay(tower, floor, flats), pause: 0.8 }];
   // Visit homes in corridor order starting nearest the lift.
   const order = [...flats].sort((a, b) => {
     const da = doorPoints(a).outside;
@@ -97,17 +122,12 @@ export function floorTour(tower: TowerId, floor: number, from?: { x: number; z: 
       pause: 0.6,
     });
     if (f.status === 'available') {
-      steps.push({ x: d.door[0], z: d.door[1] }, { x: d.inside[0], z: d.inside[1], caption: `Inside ${f.id}`, say: "Let's step inside.", pause: 0.3 });
+      steps.push({ x: d.inside[0], z: d.inside[1], present: true, caption: `Inside ${f.id}`, say: "Let's step inside.", pause: 0.3 });
       const L = flatXform(f).layout;
       const foyer = L.rooms.findIndex((r) => r.kind === 'foyer');
-      const { steps: inner, last } = roomSteps(f, foyer, true);
+      const { steps: inner } = roomSteps(f, foyer, true);
       steps.push(...inner);
-      const xf = flatXform(f);
-      for (const p of route(L, last, foyer, d.plan)) {
-        const [x, z] = planToWorldXZ(xf, p.x, p.y);
-        steps.push({ x, z });
-      }
-      steps.push({ x: d.door[0], z: d.door[1] }, { x: d.outside[0], z: d.outside[1] });
+      steps.push({ x: d.outside[0], z: d.outside[1], present: true });
     }
   }
   steps.push({ x: lf.x, z: lf.z, caption: 'Floor tour complete', say: 'That completes this floor. Use the lift panel to visit another floor, or open any home to see its details.', pause: 0.5 });

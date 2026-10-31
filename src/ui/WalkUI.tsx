@@ -16,6 +16,7 @@ import { englishVoices, narrator } from '../lib/narrator';
 import { enterFloor, rideLift } from '../lib/lift';
 import { STATUS_COLOR } from '../lib/colors';
 import { Icon } from './Icon';
+import { interiorPose } from '../lib/poses';
 
 const pill = 'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition';
 const ghost = `${pill} bg-white/15 hover:bg-white/25`;
@@ -195,7 +196,7 @@ export function ModeBar() {
   );
 }
 
-/** ◀ A-1201 · A-1202 · A-1203 · A-1204 ▶ — walks you through the corridor to another home. */
+/** ◀ A-1201 · A-1202 · A-1203 · A-1204 ▶ — opens another home directly. */
 function FlatSwitcher() {
   const selectedId = useStore((s) => s.selectedId);
   const flat = selectedId ? FLAT_BY_ID.get(selectedId) : undefined;
@@ -203,8 +204,11 @@ function FlatSwitcher() {
   const flats = floorFlats(flat.tower, flat.floor);
   const i = flats.findIndex((f) => f.id === flat.id);
   const goto = (f: (typeof flats)[number]) => {
-    const living = flatXform(f).layout.rooms.find((r) => r.kind === 'living')!;
-    walkPath(floorRoute(f.tower, f.floor, runtime.player, f, { x: living.x + living.w / 2, y: living.y + living.h / 2 }));
+    if (f.id === flat.id) return;
+    stopTour();
+    useStore.setState({ selectedId: f.id, currentRoom: null, nearLift: false, designSel: null, designTop: false });
+    runtime.plan.valid = false;
+    useStore.getState().flyTo(interiorPose(f));
   };
   return (
     <div className="flex items-center rounded-xl bg-white/10 p-0.5" role="group" aria-label="Homes on this floor">

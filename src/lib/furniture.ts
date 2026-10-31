@@ -327,7 +327,7 @@ function dining(out: Piece[], cx: number, cz: number, n: 4 | 6, along: boolean, 
   const np = t.id === 'northpark';
   const sx = along ? tw : 0.9;
   const sz = along ? 0.9 : tw;
-  out.push(P(cx, 0.75, cz, sx, 0.05, sz, np ? t.wood : t.counter, 'rbox', np ? 'wood' : 'gloss'));
+  out.push(P(cx, 0.75, cz, sx, 0.05, sz, np ? t.wood : t.counter, 'rbox', np ? 'wood' : 'gloss', { solid: true }));
   for (const dx of [-1, 1]) for (const dz of [-1, 1]) out.push(P(cx + dx * (sx / 2 - 0.1), 0.36, cz + dz * (sz / 2 - 0.1), 0.06, 0.72, 0.06, t.wood, 'rbox', 'wood'));
   out.push(P(cx, 0.36, cz, sx * 0.5, 0.72, sz * 0.4, t.wood, 'box', 'wood', { solid: true }));
   const per = n / 2;
@@ -336,7 +336,7 @@ function dining(out: Piece[], cx: number, cz: number, n: 4 | 6, along: boolean, 
     for (const side of [-1, 1]) {
       const x = cx + (along ? off : side * 0.72);
       const z = cz + (along ? side * 0.72 : off);
-      out.push(P(x, 0.45, z, 0.46, 0.1, 0.46, np ? '#d6d0c6' : t.fabric, 'cushion', 'fabric'));
+      out.push(P(x, 0.45, z, 0.46, 0.1, 0.46, np ? '#d6d0c6' : t.fabric, 'cushion', 'fabric', { solid: true }));
       if (np) for (const lx of [-0.17, 0.17]) for (const lz of [-0.17, 0.17]) out.push(P(x + lx, 0.21, z + lz, 0.025, 0.42, 0.025, '#1d1d1d', 'cyl', 'metal'));
       else out.push(P(x, 0.2, z, 0.38, 0.4, 0.38, t.wood, 'box', 'wood'));
       const bx = x + (along ? 0 : side * 0.21);

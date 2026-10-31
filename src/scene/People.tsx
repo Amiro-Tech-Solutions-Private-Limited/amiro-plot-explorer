@@ -27,7 +27,7 @@ export function Avatar() {
     state.current.anim = p.speed > 2.3 ? 'jog' : p.speed > 0.12 ? 'walk' : 'idle';
   });
 
-  if (!third || flying || (mode !== 'walk' && mode !== 'interior')) return null;
+  if (!third || flying || mode !== 'walk') return null;
   return <Person ref={group} look={avatar === 'f' ? LOOKS.avatarF : LOOKS.avatarM} state={state} />;
 }
 

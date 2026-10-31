@@ -58,6 +58,8 @@ export function PlayerControls({ active }: { active: boolean }) {
   const mode = useStore((s) => s.mode);
   const selectedId = useStore((s) => s.selectedId);
   const furnishing = useStore((s) => s.furnishing);
+  const themes = useStore((s) => s.themes);
+  const design = useStore((s) => s.design);
   const camYaw = useRef(0);
   const pitch = useRef(0);
   const bob = useRef(0);
@@ -73,7 +75,7 @@ export function PlayerControls({ active }: { active: boolean }) {
   const interior = mode === 'interior' && !!flat;
   const floorKey = interior ? `${flat!.tower}|${flat!.floor}` : '';
   const walls = useMemo(() => (interior ? floorColliders(flat!.tower, flat!.floor, furnishing, false) : SITE_COLLIDERS), [floorKey, furnishing]); // eslint-disable-line react-hooks/exhaustive-deps
-  const withFurn = useMemo(() => (interior ? floorColliders(flat!.tower, flat!.floor, furnishing, true) : SITE_COLLIDERS), [floorKey, furnishing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const withFurn = useMemo(() => (interior ? floorColliders(flat!.tower, flat!.floor, furnishing, true) : SITE_COLLIDERS), [floorKey, furnishing, themes, design]); // eslint-disable-line react-hooks/exhaustive-deps
   const baseY = interior ? flatXform(flat!).baseY : 0;
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function PlayerControls({ active }: { active: boolean }) {
       const fx = -Math.sin(e.y);
       const fz = -Math.cos(e.y);
       const d = mode === 'interior' ? 0.8 : 3;
-      [p.x, p.z] = resolveCircle(p.x + fx * d, p.z + fz * d, 0.3, mode === 'interior' ? walls : SITE_COLLIDERS);
+      [p.x, p.z] = resolveCircle(p.x + fx * d, p.z + fz * d, 0.3, withFurn);
     }
     if (runtime.pendingTour === 'floor' && interior) {
       runtime.pendingTour = null;
@@ -182,6 +184,13 @@ export function PlayerControls({ active }: { active: boolean }) {
         speed = (interior ? 1.6 : 2.6) * run * Math.min(1, len);
       } else if (runtime.tourIdx < path.length && !st.tour?.paused) {
         let wp = path[runtime.tourIdx];
+        if (interior && wp.present && runtime.tourCap !== runtime.tourIdx) {
+          // Room tours are unobstructed presentations; no character walks across the set.
+          p.x = wp.x;
+          p.z = wp.z;
+          vel.current.x = vel.current.z = 0;
+          wp.routed = true;
+        }
         // New leg: route around furniture with A* if the straight line is blocked.
         if (interior && flat && !wp.routed && runtime.tourCap !== runtime.tourIdx) {
           wp.routed = true;
@@ -198,6 +207,10 @@ export function PlayerControls({ active }: { active: boolean }) {
                 path.splice(runtime.tourIdx, 0, ...mid.map(([x, z]) => ({ x, z, routed: true })));
                 wp = path[runtime.tourIdx];
               }
+            } else {
+              stopTour();
+              st.showToast('This route is blocked. Move furniture or choose another spot.');
+              return;
             }
           }
         }
@@ -210,7 +223,7 @@ export function PlayerControls({ active }: { active: boolean }) {
           const dz = wp.z - p.z;
           const d = Math.hypot(dx, dz);
           // Pass-through points are cut smoothly; stops are reached precisely.
-          if (d < (wp.caption ? 0.25 : 0.55)) {
+          if (d < (wp.caption ? 0.18 : interior ? 0.12 : 0.55)) {
             if (wp.caption) {
               arriveAt(runtime.tourIdx);
               const voiced = !!wp.say && st.voice.enabled && narrator.available && !!st.tour;
@@ -224,15 +237,16 @@ export function PlayerControls({ active }: { active: boolean }) {
             speed = wp.caption ? Math.min(interior ? 1.25 : 2.2, d * 1.6 + 0.25) : interior ? 1.25 : 2.2;
             if (d < stuck.current.d - 0.05) stuck.current = { ...stuck.current, t: 0, d };
             else if ((stuck.current.t += dt) > 1.2) {
-              // Blocked: re-plan from here once, then hop over as a last resort.
+              // Re-plan once; never teleport the walker through an obstacle.
               if (!stuck.current.r && interior && flat) {
                 wp.routed = false;
                 stuck.current = { t: 0, d: Infinity, r: true };
               } else {
-                p.x = wp.x;
-                p.z = wp.z;
+                stopTour();
+                st.showToast('This route is blocked. Move furniture or choose another spot.');
                 vel.current.x = vel.current.z = 0;
                 stuck.current = { t: 0, d: Infinity, r: false };
+                return;
               }
             }
           }

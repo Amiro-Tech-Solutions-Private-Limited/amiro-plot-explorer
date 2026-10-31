@@ -1,26 +1,19 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Billboard, Html } from '@react-three/drei';
 import type { Flat } from '../data/types';
-import { FLAT_BY_ID, TOWER_BY_ID, unitOf } from '../data/project';
-import { interiorFor, profileWithTheme } from '../data/interiors';
+import { FLAT_BY_ID, TOWER_BY_ID } from '../data/project';
+import { profileWithTheme } from '../data/interiors';
 import { useStore } from '../store/useStore';
 import { runtime } from '../store/runtime';
-import { effectiveFurnishing, flatXform, furnishedOf, planToWorldXZ, worldToPlan } from '../lib/interiorFrame';
-import type { Anchor } from '../lib/furniture';
+import { effectiveFurnishing, flatXform, furnishedOf, worldToPlan } from '../lib/interiorFrame';
 import type { Seg } from '../lib/walls';
 import { DOOR_H } from '../lib/walls';
-import { interiorTour, floorTour } from '../lib/tours';
 import { floorFlats, floorRoute } from '../lib/floor';
-import { startTour, walkPath } from '../lib/tourEngine';
-import { narrator } from '../lib/narrator';
-import { getItem } from '../lib/items';
-import { FACING_LONG } from '../lib/geometry';
-import { ordinal } from '../lib/format';
+import { walkPath } from '../lib/tourEngine';
 import { labelTexture } from './textures';
 import { HomeModel } from './HomeModel';
-import { LOOKS, Person, type Anim, type AnimState, type Look } from './Person';
 import { Corridor } from './Corridor';
 import { DesignLayer } from './DesignLayer';
 
@@ -175,170 +168,6 @@ function Hotspot({ x, z, onGo }: { x: number; z: number; onGo: () => void }) {
   );
 }
 
-function Residents({ flat }: { flat: Flat }) {
-  const furnishing = useStore((s) => s.furnishing);
-  const mode = effectiveFurnishing(flat, furnishing);
-  if (mode !== 'lived') return null;
-  const a = furnishedOf(flat, furnishing).anchors;
-  const p = interiorFor(flat);
-  const people: { look: Look; anim: Anim; at: Anchor | undefined }[] = [];
-  switch (p.household) {
-    case 'couple':
-      people.push({ look: LOOKS.dad, anim: 'sit', at: a.sofa }, { look: LOOKS.mom, anim: 'cook', at: a.cook });
-      break;
-    case 'kids':
-      people.push({ look: LOOKS.kid1, anim: 'wave', at: a.kid }, { look: LOOKS.mom, anim: 'cook', at: a.cook }, { look: LOOKS.dad, anim: 'sit', at: a.sofa });
-      break;
-    case 'elders':
-      people.push({ look: LOOKS.elder, anim: 'sit', at: a.armchair ?? a.sofa }, { look: LOOKS.mom, anim: 'cook', at: a.cook });
-      break;
-    case 'professional':
-      people.push({ look: LOOKS.dad, anim: 'sit', at: a.desk ?? a.sofa });
-      break;
-  }
-  return (
-    <>
-      {people
-        .filter((x) => x.at)
-        .map((x, i) => (
-          <Person key={i} look={x.look} anim={x.anim} position={[x.at!.x, 0, x.at!.z]} rotation-y={x.at!.ry} phaseOffset={i * 2} />
-        ))}
-    </>
-  );
-}
-
-/**
- * The sales host: waits in the current sample flat's living room, offers tours,
- * and walks alongside the visitor (following their trail) while a tour runs.
- */
-function HostGuide({ flat }: { flat: Flat }) {
-  const ref = useRef<THREE.Group>(null);
-  const state = useRef<AnimState>({ anim: 'idle', speed: 0 });
-  const trail = useRef<{ x: number; z: number }[]>([]);
-  const touring = useStore((s) => s.touring);
-  const furnishing = useStore((s) => s.furnishing);
-  const [near, setNear] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const xf = flatXform(flat);
-  const sample = effectiveFurnishing(flat, furnishing) === 'sample';
-  const home = useMemo(() => {
-    const a = furnishedOf(flat, furnishing).anchors.host;
-    if (!a) return null;
-    const [x, z] = planToWorldXZ(xf, a.x, a.z);
-    return { x, z };
-  }, [flat, furnishing, xf]);
-  const look = interiorFor(flat).seed % 2 ? LOOKS.hostF : LOOKS.host;
-  const camera = useThree((s) => s.camera);
-  const aim = useRef<THREE.Vector3 | null>(new THREE.Vector3());
-
-  useFrame((_, rawDt) => {
-    const g = ref.current;
-    if (!g || !home) return;
-    const dt = Math.min(rawDt, 0.05);
-    const p = runtime.player;
-    if (!g.userData.placed) {
-      g.position.set(home.x, xf.baseY, home.z);
-      g.userData.placed = true;
-    }
-    const tr = trail.current;
-    const last = tr[tr.length - 1];
-    if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.25) tr.push({ x: p.x, z: p.z });
-    if (tr.length > 40) tr.shift();
-    const beat = useStore.getState().beat;
-    let item = beat?.focus[0] ? getItem(beat.focus[0]) : null;
-    if (item && Math.abs(item.center[1] - xf.baseY) > 4) item = null;
-    const atStop = runtime.tourCap === runtime.tourIdx;
-    // While touring the host leads the way along the route and waits beside each stop.
-    let target = home;
-    if (touring && runtime.tourAll.length) {
-      const wp = runtime.tourAll[Math.min(runtime.tourIdx, runtime.tourAll.length - 1)];
-      if (atStop && item && (item.kind === 'feature' || item.kind === 'door')) {
-        // Stand beside the thing being shown, off the camera line.
-        const dx = item.center[0] - item.view[0];
-        const dz = item.center[2] - item.view[2];
-        const l = Math.hypot(dx, dz) || 1;
-        target = { x: item.view[0] + dx * 0.35 - (dz / l) * 1.15, z: item.view[2] + dz * 0.35 + (dx / l) * 1.15 };
-      } else if (atStop && item?.corners) {
-        // Room overview: stand across the room from the camera's corner, facing back at it.
-        let ni = 0;
-        item.corners.forEach((k, i) => {
-          if (Math.hypot(k[0] - p.x, k[1] - p.z) < Math.hypot(item!.corners![ni][0] - p.x, item!.corners![ni][1] - p.z)) ni = i;
-        });
-        const far = item.corners[(ni + 2) % 4];
-        target = { x: item.center[0] + (far[0] - item.center[0]) * 0.4, z: item.center[2] + (far[1] - item.center[2]) * 0.4 };
-      } else if (atStop) {
-        const fx0 = -Math.sin(p.yaw);
-        const fz0 = -Math.cos(p.yaw);
-        target = { x: p.x + fx0 * 1.4 - fz0 * 0.5, z: p.z + fz0 * 1.4 + fx0 * 0.5 };
-      } else target = wp;
-    } else if (touring && tr.length > 6) target = tr[tr.length - 6];
-    const dx = target.x - g.position.x;
-    const dz = target.z - g.position.z;
-    const d = Math.hypot(dx, dz);
-    const speed = d > 0.15 ? Math.min(2.2, d * 2.2) : 0;
-    if (speed > 0) {
-      g.position.x += (dx / d) * speed * dt;
-      g.position.z += (dz / d) * speed * dt;
-    }
-    if (d > 8) g.position.set(target.x, xf.baseY, target.z);
-    g.position.y = xf.baseY;
-    // Face the viewer (the camera) when standing still — eye contact while talking.
-    const pointing = !!item && beat?.host === 'point' && speed < 0.3;
-    // The pointing clip aims straight ahead, so turn the body towards the item while pointing.
-    const fx = speed > 0.3 ? dx : pointing && item ? item.center[0] - g.position.x : camera.position.x - g.position.x;
-    const fz = speed > 0.3 ? dz : pointing && item ? item.center[2] - g.position.z : camera.position.z - g.position.z;
-    let dy = Math.atan2(fx, fz) - g.rotation.y;
-    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-    g.rotation.y += dy * Math.min(1, dt * 4);
-    aim.current!.copy(camera.position);
-    state.current.speed = speed;
-    state.current.anim =
-      speed > 0.3
-        ? 'walk'
-        : pointing
-          ? 'point'
-          : beat?.host === 'present'
-            ? 'present'
-            : beat?.host === 'namaste'
-              ? 'namaste'
-              : narrator.speaking
-                ? 'talk'
-                : 'idle';
-    const n = Math.hypot(p.x - g.position.x, p.z - g.position.z) < 3.2;
-    if (n !== near) setNear(n);
-  });
-
-  if (!home || (!sample && !touring)) return null;
-  const u = unitOf(flat);
-  return (
-    <group ref={ref}>
-      <Person look={look} state={state} talk target={aim} />
-      {near && !touring && !dismissed && sample && (
-        <Html position={[0, 2.15, 0]} center zIndexRange={[50, 0]}>
-          <div className="w-64 rounded-2xl bg-white/95 p-3 text-xs text-slate-700 shadow-xl ring-1 ring-black/5">
-            <div className="mb-1 font-semibold text-slate-900">Hi! Welcome to {flat.id} 👋</div>
-            This is a {u.label}, {FACING_LONG[flat.facing]} facing, on the {ordinal(flat.floor)} floor. Shall I show you around?
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => startTour(interiorTour(flat, runtime.plan.valid ? { x: runtime.plan.x, y: runtime.plan.y } : { x: 6, y: 1 }), `${flat.id} tour`)}
-                className="rounded-lg bg-brand-700 px-2 py-1.5 font-semibold text-white"
-              >
-                Tour this home
-              </button>
-              <button onClick={() => startTour(floorTour(flat.tower, flat.floor, runtime.player), `Floor ${flat.floor} tour`)} className="rounded-lg bg-brand-50 px-2 py-1.5 font-semibold text-brand-700">
-                Tour the floor
-              </button>
-            </div>
-            <button onClick={() => setDismissed(true)} className="mt-1.5 w-full rounded-lg bg-slate-100 px-2 py-1 font-semibold">
-              Maybe later
-            </button>
-          </div>
-        </Html>
-      )}
-    </group>
-  );
-}
-
 function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
   const furnishing = useStore((s) => s.furnishing);
   const roomTags = useStore((s) => s.roomTags);
@@ -385,12 +214,11 @@ function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
               <Hotspot x={r.x + r.w / 2} z={r.y + r.h / 2 + (r.h > 2.5 ? 0.8 : 0)} onGo={() => walkTo(r.x + r.w / 2, r.y + r.h / 2 + (r.h > 2.5 ? 0.8 : 0))} />
             </group>
           ))}
-      <Residents flat={flat} />
     </group>
   );
 }
 
-/** The whole visited floor: four furnished homes, the corridor, lifts and the host. */
+/** The whole visited floor: four furnished homes, the corridor and lifts. */
 export function InteriorScene() {
   const mode = useStore((s) => s.mode);
   const selectedId = useStore((s) => s.selectedId);
@@ -404,7 +232,6 @@ export function InteriorScene() {
         <FlatInterior key={f.id} flat={f} current={f.id === flat.id} />
       ))}
       <Corridor tower={TOWER_BY_ID.get(flat.tower)!} floor={flat.floor} />
-      <HostGuide key={`${flat.tower}-${flat.floor}`} flat={flat} />
       {!night && <ambientLight intensity={0.3} />}
     </group>
   );

@@ -84,7 +84,7 @@ export function floorColliders(tower: TowerId, floor: number, furnishing: Furnis
       if (b.solid && b.mat !== 'block' && b.y - b.sy / 2 < 1.2) out.push(toWorld(b.x, b.z, b.sx / 2, b.sz / 2));
     }
     if (withFurniture) {
-      for (const p of furnishedOf(f, furnishing, useStore.getState().themes[f.id]).pieces) if (p.solid && p.y - p.sy / 2 < 0.3) out.push(toWorld(p.x, p.z, p.sx / 2 - 0.05, p.sz / 2 - 0.05, p.ry ?? 0));
+      for (const p of furnishedOf(f, furnishing, useStore.getState().themes[f.id]).pieces) if (p.solid && p.y - p.sy / 2 < 1.2 && p.y + p.sy / 2 > 0.08) out.push(toWorld(p.x, p.z, p.sx / 2, p.sz / 2, p.ry ?? 0));
     }
   }
   const box = (x0: number, x1: number, z0: number, z1: number) => {
@@ -107,7 +107,7 @@ export function floorNav(tower: TowerId, floor: number, furnishing: Furnishing):
   const key = `${tower}|${floor}|${furnishing}|${designKey(tower, floor)}`;
   let g = navCache.get(key);
   if (!g) {
-    g = buildGrid(floorColliders(tower, floor, furnishing, true));
+    g = buildGrid(floorColliders(tower, floor, furnishing, true), 0.32);
     navCache.set(key, g);
   }
   return g;
@@ -136,6 +136,8 @@ export interface Waypoint {
   action?: () => void;
   /** Already checked / detoured by the path-finder. */
   routed?: boolean;
+  /** Room presentation: move the unseen viewer to a clear spot before framing the room. */
+  present?: boolean;
 }
 
 /** Route anywhere on a floor: out of the current home, along the corridor, into another home. */
