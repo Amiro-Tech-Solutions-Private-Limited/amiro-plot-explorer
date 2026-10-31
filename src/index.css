@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+canvas {
+  touch-action: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Dual-thumb range: two stacked native inputs, only thumbs are interactive */
+.dual-range input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.dual-range input[type='range']::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 24px;
+}
+.dual-range input[type='range']::-moz-range-track {
+  background: transparent;
+}
+.dual-range input[type='range']::-webkit-slider-thumb,
+.single-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid #0b6b4c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+.dual-range input[type='range']::-moz-range-thumb,
+.single-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid #0b6b4c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+.dual-range input[type='range']:focus-visible::-webkit-slider-thumb,
+.single-range:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid rgba(18, 128, 92, 0.4);
+}
+
+.single-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 24px;
+  background: transparent;
+}
+.single-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #12805c 0 var(--p), #e2e8f0 var(--p) 100%);
+}
+.single-range::-webkit-slider-thumb {
+  margin-top: -7px;
+}
+.single-range::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+.single-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 9999px;
+  background: #12805c;
+}
+
+:focus-visible {
+  outline: 2px solid #12805c;
+  outline-offset: 2px;
+}
