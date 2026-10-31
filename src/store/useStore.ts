@@ -66,7 +66,7 @@ interface State {
   voice: VoiceSettings;
   tour: { title: string; step: number; total: number; paused: boolean } | null;
   /** Beat currently being narrated ("show what you say"), with the spoken character index. */
-  beat: { key: number; say: string; focus: string[]; shot: string; highlight?: string; host?: string; idx: number; total: number; char: number } | null;
+  beat: { key: number; say: string; focus: string[]; shot: string; duration?: number; highlight?: string; host?: string; idx: number; total: number; char: number } | null;
   /** Director takes the camera during beats. */
   cinematic: boolean;
   /** Visitor's own furniture layouts per flat id ("Design your home"). */

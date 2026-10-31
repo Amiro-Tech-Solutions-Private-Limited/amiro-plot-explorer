@@ -38,7 +38,8 @@ export function playBeats(beats: Beat[]) {
     const b = beats[i];
     const key = ++serial;
     const idx = i;
-    useStore.setState({ beat: { key, say: b.say, focus: b.focus, shot: b.shot, highlight: b.highlight, host: b.host, idx, total: beats.length, char: 0 } });
+    runtime.beatElapsed = 0;
+    useStore.setState({ beat: { key, say: b.say, focus: b.focus, shot: b.shot, duration: b.duration, highlight: b.highlight, host: b.host, idx, total: beats.length, char: 0 } });
     runtime.directing = useStore.getState().cinematic;
     runtime.userCam = 0;
     const done = () => {
@@ -46,6 +47,10 @@ export function playBeats(beats: Beat[]) {
       // Hold while paused (timer fallback when voice is off).
       if (useStore.getState().tour?.paused) {
         timer = setTimeout(done, 300);
+        return;
+      }
+      if (useStore.getState().cinematic && runtime.beatElapsed < (b.duration ?? 0)) {
+        timer = setTimeout(done, 200);
         return;
       }
       i++;

@@ -23,6 +23,8 @@ export const runtime = {
   pendingTour: null as null | 'floor',
   /** Beat playback (tourEngine) — the walker waits while true. */
   beatsPlaying: false,
+  /** Active camera time for the current beat; pauses during manual look-around. */
+  beatElapsed: 0,
   /** The Director owns the camera while true. */
   directing: false,
   /** Time (ms) the user last grabbed the camera; the Director backs off for a while. */

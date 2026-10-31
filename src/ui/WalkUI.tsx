@@ -329,6 +329,7 @@ export function TourPanel() {
   const tour = useStore((s) => s.tour);
   const voice = useStore((s) => s.voice);
   const cinematic = useStore((s) => s.cinematic);
+  const panorama = useStore((s) => s.beat?.shot === 'panorama');
   const [settings, setSettings] = useState(false);
   const [chap, setChap] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -389,6 +390,11 @@ export function TourPanel() {
           <Icon name="close" size={13} />
         </button>
       </div>
+      {panorama && (
+        <div className="mt-2 rounded-lg bg-white/5 px-2 py-1.5 text-[11px] text-white/75">
+          {cinematic ? '360° room tour · Drag to look around · Pause to stay here' : 'Free look · Drag to explore every direction'}
+        </div>
+      )}
       {chap && (
         <ol className="mt-2 max-h-56 overflow-y-auto border-t border-white/10 pt-1.5 text-[11.5px]">
           {chapters().map((c, k) => (

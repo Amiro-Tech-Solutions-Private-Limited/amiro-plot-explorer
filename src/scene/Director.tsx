@@ -7,6 +7,7 @@ import { runtime } from '../store/runtime';
 import { getItem, landmarks, type Item } from '../lib/items';
 import { FLAT_BY_ID } from '../data/project';
 import { flatXform } from '../lib/interiorFrame';
+import { PANORAMA_EYE_HEIGHT, panoramaYaw } from '../lib/panorama';
 
 const v = new THREE.Vector3();
 const want = new THREE.Vector3();
@@ -100,20 +101,24 @@ function shot(kind: string, items: Item[], t: number, from: THREE.Vector3) {
 
 /** Takes the camera during narrated beats and frames what is being talked about. */
 export function Director() {
-  const camera = useThree((s) => s.camera);
-  const st = useRef({ key: -1, t: 0, from: new THREE.Vector3(), active: false });
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const st = useRef({ key: -1, t: 0, yaw: 0, from: new THREE.Vector3(), active: false, panoramic: false });
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const s = st.current;
     const store = useStore.getState();
     const b = store.beat;
-    const on = !!b && runtime.directing && performance.now() - runtime.userCam > 5000 && !store.flying && (store.mode === 'interior' || store.mode === 'walk' || store.mode === 'balcony');
+    const on = !!b && runtime.directing && performance.now() - runtime.userCam > 5000 && !store.flying && !runtime.camOverride && (store.mode === 'interior' || store.mode === 'walk' || store.mode === 'balcony');
     const items = on ? (b!.focus.map(getItem).filter(Boolean) as Item[]) : [];
     if (!on || !items.length) {
       if (s.active) {
         s.active = false;
         camera.getWorldDirection(v);
         runtime.dirYaw = Math.atan2(-v.x, -v.z);
+        if (s.panoramic && !store.flying) {
+          camera.fov = 70;
+          camera.updateProjectionMatrix();
+        }
       }
       return;
     }
@@ -121,9 +126,34 @@ export function Director() {
       s.key = b!.key;
       s.t = 0;
       s.from.copy(camera.position);
+      camera.getWorldDirection(v);
+      s.yaw = Math.atan2(-v.x, -v.z);
+      s.panoramic = b!.shot === 'panorama';
+      if (s.panoramic) {
+        // The room waypoint is already collision-checked. Keep a fixed human viewpoint.
+        camera.position.set(runtime.player.x, floorOf(items[0]) + PANORAMA_EYE_HEIGHT, runtime.player.z);
+      }
+    } else if (s.panoramic && !s.active) {
+      // Resume from the visitor's chosen heading instead of pulling back to the old angle.
+      camera.getWorldDirection(v);
+      s.yaw = Math.atan2(-v.x, -v.z) - panoramaYaw(0, s.t);
     }
     s.active = true;
+    if (store.tour?.paused) return;
     s.t += dt;
+    runtime.beatElapsed = s.t;
+    if (s.panoramic) {
+      const yaw = panoramaYaw(s.yaw, s.t);
+      // Look around from one spot instead of orbiting furniture or moving through walls.
+      Q.setFromEuler(new THREE.Euler(-0.025, yaw, 0, 'YXZ'));
+      camera.quaternion.slerp(Q, 1 - Math.exp(-dt * 6));
+      const fov = camera.fov + (76 - camera.fov) * (1 - Math.exp(-dt * 3));
+      if (Math.abs(fov - camera.fov) > 0.001) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+      return;
+    }
     const { pos, tgt } = shot(b!.shot, items, s.t, s.from);
     const kp = 1 - Math.exp(-dt * (b!.shot === 'dolly' ? 6 : 2.4));
     want.copy(pos);
@@ -253,7 +283,7 @@ export function BeatFX() {
   const beat = useStore((s) => s.beat);
   const furnishing = useStore((s) => s.furnishing);
   const items = useMemo(() => (beat ? (beat.focus.map(getItem).filter(Boolean) as Item[]) : []), [beat?.key, furnishing]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!beat || !items.length) return null;
+  if (!beat || !items.length || beat.shot === 'panorama') return null;
   const hl = beat.highlight ?? 'outline';
   return (
     <group>

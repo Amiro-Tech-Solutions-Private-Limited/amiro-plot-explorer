@@ -113,12 +113,13 @@ export function floorNav(tower: TowerId, floor: number, furnishing: Furnishing):
   return g;
 }
 
-export type Shot = 'look' | 'dolly' | 'orbit' | 'closeup' | 'wide' | 'overhead' | 'view';
+export type Shot = 'look' | 'dolly' | 'orbit' | 'closeup' | 'wide' | 'overhead' | 'view' | 'panorama';
 export type Highlight = 'outline' | 'label' | 'dimension' | 'compass' | 'landmarks' | 'sunpath';
 
 /** One sentence of narration plus what to show while it is spoken. */
 export interface Beat {
   say: string;
+  duration?: number;
   /** Item ids (see lib/items.ts). */
   focus: string[];
   shot: Shot;

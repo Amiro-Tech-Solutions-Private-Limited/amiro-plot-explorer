@@ -171,6 +171,7 @@ function Hotspot({ x, z, onGo }: { x: number; z: number; onGo: () => void }) {
 function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
   const furnishing = useStore((s) => s.furnishing);
   const roomTags = useStore((s) => s.roomTags);
+  const touring = useStore((s) => s.touring);
   const night = useStore((s) => s.interiorNight);
   const themeId = useStore((s) => s.themes[flat.id]);
   const designMode = useStore((s) => s.designMode && current);
@@ -205,6 +206,7 @@ function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
       {current && night && f.lights.slice(0, 6).map((p, i) => <pointLight key={i} position={[p.x, 2.6, p.z]} intensity={5} distance={7} decay={1.5} color="#ffd9a8" />)}
       {current &&
         roomTags &&
+        !touring &&
         !designMode &&
         xf.layout.rooms
           .filter((r) => r.kind !== 'stair')

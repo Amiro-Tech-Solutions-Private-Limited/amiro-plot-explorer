@@ -114,6 +114,7 @@ export function PlayerControls({ active }: { active: boolean }) {
     };
     const move = (ev: PointerEvent) => {
       if (!dragging || ev.pointerId !== pid) return;
+      if (runtime.directing) runtime.userCam = performance.now();
       if (runtime.designDrag || runtime.camOverride) {
         lx = ev.clientX;
         ly = ev.clientY;

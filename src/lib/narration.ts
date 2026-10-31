@@ -9,6 +9,7 @@ import { useStore } from '../store/useStore';
 import { itemId } from './items';
 import { effectiveFurnishing } from './interiorFrame';
 import type { Beat, Highlight, Shot } from './floor';
+import { PANORAMA_DURATION } from './panorama';
 
 /** Spoken-friendly money: "1 point 6 5 crore rupees" reads badly, so round sensibly. */
 export function sayMoney(n: number) {
@@ -173,5 +174,10 @@ export function roomBeats(flat: Flat, name: string, short = false): Beat[] {
       add(`${name}, ${size}.`, [room], 'wide', 'dimension');
   }
   if (!out.length) out.push({ say: roomSay(flat, name), focus: [room], shot: 'look' });
-  return out;
+  return [{
+    say: out.map((beat) => beat.say).join(' '),
+    focus: [room],
+    shot: 'panorama',
+    duration: PANORAMA_DURATION,
+  }];
 }
