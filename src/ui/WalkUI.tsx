@@ -464,7 +464,11 @@ export function TourCaption() {
 
 /** Subtitle with the words already spoken lit up. */
 function Karaoke({ text, char }: { text: string; char: number }) {
-  const words = useMemo(() => [...text.matchAll(/\S+\s*/g)].map((m) => ({ w: m[0], at: m.index ?? 0 })), [text]);
+  const words = useMemo(() => {
+    const all = [...text.matchAll(/\S+\s*/g)].map((m) => ({ w: m[0], at: m.index ?? 0 }));
+    const active = Math.max(0, all.findIndex((w, i) => w.at <= char && (all[i + 1]?.at ?? Infinity) > char));
+    return all.slice(Math.floor(active / 16) * 16, Math.floor(active / 16) * 16 + 16);
+  }, [text, char]);
   return (
     <div className="text-[15px] leading-snug">
       {words.map((x, i) => (

@@ -20,6 +20,64 @@ canvas {
   touch-action: none;
 }
 
+.home-header { position:absolute; inset:0 0 auto; z-index:30; height:82px; display:flex; align-items:center; gap:18px; padding:0 32px; color:#f8f5ef; background:linear-gradient(180deg,rgba(24,28,27,.86),rgba(24,28,27,.25)); }
+.home-back,.home-icon { display:grid; place-items:center; width:38px; height:38px; flex-shrink:0; border:1px solid rgba(255,255,255,.24); border-radius:50%; color:inherit; background:rgba(255,255,255,.06); font-size:22px; }
+.home-back:hover,.home-icon:hover { background:rgba(255,255,255,.18); }
+.home-brand { display:flex; flex-direction:column; gap:6px; }
+.home-brand>span { font-size:10px; letter-spacing:.22em; font-weight:500; }
+.home-brand i { margin:0 9px; opacity:.4; font-style:normal; }
+.home-brand strong { font-size:15px; font-weight:500; }
+.home-brand strong span { margin-left:12px; opacity:.6; font-size:12px; font-weight:400; }
+.home-address { margin-left:auto; text-align:right; font-size:12px; }
+.home-address span { display:block; margin-top:5px; font-size:10px; opacity:.65; }
+.home-room-title { position:absolute; left:36px; top:116px; color:#fff; text-shadow:0 2px 20px rgba(0,0,0,.5); }
+.home-room-title>span,.home-drawer-heading>div>span { font-size:9px; letter-spacing:.22em; font-weight:500; }
+.home-room-title h1 { margin:8px 0; font-family:Georgia,'Times New Roman',serif; font-size:38px; font-weight:400; letter-spacing:-.02em; }
+.home-room-title p { font-size:11px; color:rgba(255,255,255,.8); }
+.home-dock { position:absolute; bottom:38px; left:50%; transform:translateX(-50%); z-index:25; display:flex; align-items:center; gap:4px; padding:8px; border:1px solid rgba(255,255,255,.22); border-radius:22px; background:rgba(30,35,32,.92); backdrop-filter:blur(20px); color:#f7f4ee; box-shadow:0 16px 50px #0003; }
+.home-dock>button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:78px; height:54px; padding:6px 14px; border-radius:14px; font-size:10px; color:#d5d9d3; }
+.home-dock>button:hover,.home-dock>button.active { background:#ffffff14; color:#fff; }
+.home-dock>button.home-tour-button { flex-direction:row; gap:10px; min-width:144px; margin:0 6px; background:#e5d5b6; color:#292e28; font-size:12px; font-weight:600; }
+.home-style-dot { width:17px; height:17px; border-radius:50%; border:2px solid #fff8; }
+.home-gesture-hint { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); width:max-content; max-width:96vw; color:#fff; text-shadow:0 1px 6px #000; font-size:10px; }
+.home-gesture-hint span { margin:0 8px; opacity:.6; }
+.home-drawer { position:absolute; right:24px; top:100px; bottom:146px; z-index:26; width:340px; max-width:calc(100vw - 32px); overflow:auto; padding:24px; color:#30382f; background:rgba(249,247,241,.97); border:1px solid #fff8; border-radius:20px; box-shadow:0 18px 80px #0003; backdrop-filter:blur(20px); }
+.home-drawer-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.home-drawer-heading>div>span { color:#838777; }
+.home-drawer-heading h2 { margin-top:7px; font-family:Georgia,serif; font-size:23px; font-weight:400; }
+.home-drawer .home-icon { width:30px; height:30px; border-color:#d9dcd3; }
+.home-room-list,.home-style-list { display:flex; flex-direction:column; gap:6px; }
+.home-room-list button { display:flex; align-items:center; gap:14px; padding:14px 10px; text-align:left; font-size:13px; border-radius:10px; }
+.home-room-list button:hover,.home-room-list button.selected,.home-style-list button:hover,.home-style-list button.selected { background:#e8eadd; }
+.home-room-number { font-size:10px; color:#8d9387; font-variant-numeric:tabular-nums; }
+.home-room-arrow { margin-left:auto; color:#7d8677; }
+.home-style-list button { display:flex; align-items:center; gap:12px; padding:12px 9px; border-radius:12px; text-align:left; font-size:12px; }
+.home-swatches { display:flex; padding-left:6px; }
+.home-swatches i { width:24px; height:24px; border-radius:50%; border:2px solid #f8f7f1; margin-left:-6px; }
+.home-light-toggle { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:20px; padding:14px 8px; border-top:1px solid #d8dccc; font-size:12px; }
+.home-residences { display:flex; gap:5px; padding-bottom:15px; margin-bottom:10px; border-bottom:1px solid #d8dccc; }
+.home-residences button { flex:1; padding:9px 4px; font-size:10px; border-radius:8px; background:#edeee7; }
+.home-residences button.selected { background:#334335; color:white; }
+.home-furnishing { display:flex; align-items:center; justify-content:space-between; font-size:11px; padding-top:12px; }
+.home-furnishing select { padding:8px; border-radius:8px; background:#e8eadd; }
+@media(max-width:640px) {
+ .home-header { padding:0 16px; height:72px; gap:12px; }
+ .home-address { display:none; }
+ .home-header>.home-icon { margin-left:auto; }
+ .home-brand strong { font-size:12px; }
+ .home-brand strong span { display:block; margin:4px 0 0; font-size:10px; }
+ .home-brand>span { font-size:8px; }
+ .home-room-title { top:100px; left:22px; }
+ .home-room-title h1 { font-size:30px; }
+ .home-dock { bottom:34px; gap:0; padding:6px; border-radius:18px; }
+ .home-dock>button { min-width:52px; padding:5px 8px; font-size:9px; }
+ .home-dock>button.home-tour-button { min-width:106px; font-size:11px; margin:0 3px; }
+ .home-dock>button:last-child { display:none; }
+ .home-gesture-hint { font-size:9px; text-align:center; }
+ .home-gesture-hint span { margin:0 3px; }
+ .home-drawer { top:88px; right:16px; bottom:124px; padding:20px; }
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

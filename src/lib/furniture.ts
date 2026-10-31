@@ -150,15 +150,13 @@ const P = (x: number, y: number, z: number, sx: number, sy: number, sz: number, 
 function plant(out: Piece[], x: number, z: number, h = 1.0, kind: 'areca' | 'bush' = 'bush') {
   out.push(P(x, 0.2, z, 0.34, 0.4, 0.34, '#c9c2b6', 'cyl', 'gloss'));
   out.push(P(x, 0.41, z, 0.3, 0.02, 0.3, '#4a3426', 'cyl', 'matte'));
-  if (kind === 'areca') {
-    for (let k = 0; k < 5; k++) {
-      const a = (k / 5) * Math.PI * 2;
-      out.push(P(x + Math.cos(a) * 0.06, 0.4 + h * 0.35, z + Math.sin(a) * 0.06, 0.02, h * 0.7, 0.02, '#6b8e3a', 'cyl', 'matte', { rx: Math.cos(a) * 0.15, ry: 0 }));
-      out.push(P(x + Math.cos(a) * 0.22, 0.4 + h * 0.75, z + Math.sin(a) * 0.22, 0.42, 0.26, 0.42, k % 2 ? '#4f8a3c' : '#5f9b45', 'sphere', 'fabric'));
-    }
-  } else {
-    out.push(P(x, 0.42 + h * 0.32, z, 0.52, h * 0.62, 0.52, '#4f8a43', 'sphere', 'fabric'));
-    out.push(P(x + 0.08, 0.42 + h * 0.58, z - 0.05, 0.36, h * 0.4, 0.36, '#5f9e4f', 'sphere', 'fabric'));
+  const count = kind === 'areca' ? 15 : 10;
+  for (let k = 0; k < count; k++) {
+    const a = k * 2.39996;
+    const reach = (kind === 'areca' ? 0.26 : 0.18) * (0.6 + (k % 4) * 0.13);
+    const y = 0.45 + h * (0.25 + (k / count) * 0.72);
+    out.push(P(x + Math.cos(a) * reach * 0.4, (y + 0.42) / 2, z + Math.sin(a) * reach * 0.4, 0.012, y - 0.42, 0.012, '#53613c', 'cyl', 'matte'));
+    out.push(P(x + Math.cos(a) * reach, y, z + Math.sin(a) * reach, kind === 'areca' ? 0.12 : 0.17, 0.035, kind === 'areca' ? 0.52 : 0.30, k % 3 ? '#425e39' : '#63764a', 'sphere', 'matte', { ry: -a, rx: 0.35 + (k % 3) * 0.18 }));
   }
 }
 
@@ -252,7 +250,7 @@ function tvWall(W: Wall, t: Theme, style: InteriorProfile['accent']) {
   W.add(0, 0.04, 0, 2.0, 0.42, 0.4, t.wood, 'rbox', 'wood', { solid: true })
     .add(0, 0.46, 0.18, 1.96, 0.01, 0.02, t.metal, 'box', 'metal')
     .add(0, 0.06, 1.0, 1.45, 0.05, 0.84, '#0d0f12', 'rbox', 'gloss')
-    .add(0, 0.11, 1.03, 1.39, 0.005, 0.78, '#2c5a8a', 'box', 'glow')
+    .add(0, 0.11, 1.03, 1.39, 0.005, 0.78, '#141b1e', 'box', 'gloss')
     .add(0, 0.15, 0.42, 0.9, 0.08, 0.08, '#1d1d1d', 'rbox', 'matte')
     .add(-0.7, 0.15, 0.42, 0.25, 0.18, 0.05, '#222', 'rbox', 'gloss');
 }

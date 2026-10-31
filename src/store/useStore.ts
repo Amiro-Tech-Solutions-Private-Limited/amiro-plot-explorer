@@ -162,7 +162,7 @@ export const useStore = create<State>((set, get) => ({
       case 'interior':
         if (!flat) return;
         s.flyTo(interiorPose(flat));
-        set({ thirdPerson: false });
+        set({ thirdPerson: false, roomTags: false, themes: s.themes[flat.id] ? s.themes : { ...s.themes, [flat.id]: 'northpark' } });
         break;
       case 'floors': {
         const tower = flat?.tower ?? s.floors.tower;

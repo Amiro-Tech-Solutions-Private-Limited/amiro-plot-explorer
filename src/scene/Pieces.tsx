@@ -3,12 +3,12 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { Mat, Piece } from '../lib/furniture';
-import { marbleTexture } from './textures';
+import { marbleTexture, surfaceTexture } from './textures';
 
 export const PIECE_MATS: Record<Mat, THREE.Material> = {
   matte: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }),
-  fabric: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.97 }),
-  wood: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.02 }),
+  fabric: new THREE.MeshStandardMaterial({ vertexColors: true, map: surfaceTexture('linen'), bumpMap: surfaceTexture('linen'), bumpScale: 0.006, roughness: 0.94 }),
+  wood: new THREE.MeshPhysicalMaterial({ vertexColors: true, map: surfaceTexture('oak'), bumpMap: surfaceTexture('oak'), bumpScale: 0.003, roughness: 0.48, clearcoat: 0.12, clearcoatRoughness: 0.55 }),
   metal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.85 }),
   gloss: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0.05 }),
   glow: new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),

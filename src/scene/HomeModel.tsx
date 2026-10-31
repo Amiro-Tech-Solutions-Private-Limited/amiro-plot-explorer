@@ -9,7 +9,7 @@ import type { Furnishing } from '../store/useStore';
 import { useStore } from '../store/useStore';
 import { Boxes, type IBox } from './Boxes';
 import { Pieces } from './Pieces';
-import { floorTexture } from './textures';
+import { floorTexture, surfaceTexture } from './textures';
 
 /** Floor material whose UVs come from the instance's plan position, so tiles stay 1:1 in every room. */
 function planarFloor(kind: 'tile' | 'wood' | 'wet', roughness: number) {
@@ -27,13 +27,13 @@ function planarFloor(kind: 'tile' | 'wood' | 'wet', roughness: number) {
 }
 
 export const MATS = {
-  wall: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.92 }),
+  wall: new THREE.MeshStandardMaterial({ color: '#ffffff', bumpMap: surfaceTexture('plaster'), bumpScale: 0.004, roughness: 0.92 }),
   glass: new THREE.MeshStandardMaterial({ color: '#b9dcf0', roughness: 0.03, metalness: 0.2, transparent: true, opacity: 0.22, depthWrite: false }),
   rail: new THREE.MeshStandardMaterial({ color: '#3d434b', roughness: 0.35, metalness: 0.7 }),
   frame: new THREE.MeshStandardMaterial({ color: '#3b4046', roughness: 0.4, metalness: 0.5 }),
   skirt: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.6 }),
-  ceiling: new THREE.MeshStandardMaterial({ color: '#f7f5f0', roughness: 0.95, emissive: '#77736b' }),
-  tile: planarFloor('tile', 0.18),
+  ceiling: new THREE.MeshStandardMaterial({ color: '#f7f5f0', roughness: 0.95 }),
+  tile: planarFloor('tile', 0.32),
   wood: planarFloor('wood', 0.45),
   wet: planarFloor('wet', 0.6),
 };

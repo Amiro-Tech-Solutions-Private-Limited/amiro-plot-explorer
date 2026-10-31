@@ -10,12 +10,13 @@ import { FloorRail } from './ui/FloorRail';
 import { FlatPanel } from './ui/FlatPanel';
 import { EnquiryModal } from './ui/EnquiryModal';
 import { HintToast, Joystick, Loader, RefCompare, SearchChooser, Toast } from './ui/Overlays';
-import { FloorMiniMap, LiftUI, ModeBar, RoomHUD, SiteMiniMap, TourCaption, TourPanel } from './ui/WalkUI';
+import { LiftUI, ModeBar, RoomHUD, SiteMiniMap, TourCaption, TourPanel } from './ui/WalkUI';
 import { DesignPanel } from './ui/DesignPanel';
 import { redoDesign, undoDesign } from './lib/designStore';
 import { hydrateFromUrl, startUrlSync, useStore } from './store/useStore';
 import { isMobile } from './store/hooks';
 import { sunTimes } from './lib/sun';
+import { HomeExperience } from './ui/HomeExperience';
 
 function useSunPlayback() {
   const playing = useStore((s) => s.sun.playing);
@@ -111,7 +112,7 @@ export default function App() {
       </div>
 
       <div className="pointer-events-none absolute inset-0">
-        <Header />
+        {mode === 'interior' ? <HomeExperience /> : <Header />}
         <AnimatePresence>
           {panel === 'filters' && <FiltersPanel key="f" />}
           {panel === 'sun' && <SunPanel key="s" />}
@@ -128,12 +129,11 @@ export default function App() {
         )}
 
         <FlatPanel />
-        <ModeBar />
+        {mode !== 'interior' && <ModeBar />}
         <DesignPanel />
         <TourCaption />
         <TourPanel />
-        <RoomHUD />
-        <FloorMiniMap />
+        {mode !== 'interior' && <RoomHUD />}
         <SiteMiniMap />
         <LiftUI />
         <Joystick />

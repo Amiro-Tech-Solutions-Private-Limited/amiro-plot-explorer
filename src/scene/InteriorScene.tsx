@@ -108,7 +108,7 @@ function SlideDoor({ seg, flat }: { seg: Seg; flat: Flat }) {
 function Fan({ x, z }: { x: number; z: number }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 7;
+    if (ref.current) ref.current.rotation.y += dt * 2;
   });
   return (
     <group position={[x, 2.62, z]}>
@@ -120,10 +120,12 @@ function Fan({ x, z }: { x: number; z: number }) {
           <cylinderGeometry args={[0.1, 0.12, 0.12, 16]} />
         </mesh>
         {[0, 1, 2].map((k) => (
-          <mesh key={k} rotation-y={(k * Math.PI * 2) / 3} position={[0.35, -0.02, 0]}>
-            <boxGeometry args={[0.62, 0.012, 0.12]} />
-            <meshStandardMaterial color="#e9e9e6" roughness={0.6} />
-          </mesh>
+          <group key={k} rotation-y={(k * Math.PI * 2) / 3}>
+            <mesh position={[0.35, -0.02, 0]}>
+              <boxGeometry args={[0.62, 0.012, 0.12]} />
+              <meshStandardMaterial color="#e9e9e6" roughness={0.6} />
+            </mesh>
+          </group>
         ))}
       </group>
     </group>
@@ -173,6 +175,7 @@ function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
   const roomTags = useStore((s) => s.roomTags);
   const touring = useStore((s) => s.touring);
   const night = useStore((s) => s.interiorNight);
+  const currentRoom = useStore((s) => s.currentRoom);
   const themeId = useStore((s) => s.themes[flat.id]);
   const designMode = useStore((s) => s.designMode && current);
   const designTop = useStore((s) => s.designTop && current);
@@ -180,6 +183,15 @@ function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
   const xf = flatXform(flat);
   const f = furnishedOf(flat, furnishing, themeId);
   const theme = profileWithTheme(flat, themeId).theme;
+  const windows = useMemo(() => xf.layout.segs.filter(s => s.kind === 'window' && s.rooms[1] == null).filter(s => !currentRoom || xf.layout.rooms[s.rooms[0]].name === currentRoom).slice(0, 3).map(s => {
+    const room = xf.layout.rooms[s.rooms[0]];
+    const x = (s.x1 + s.x2) / 2;
+    const z = (s.y1 + s.y2) / 2;
+    const dx = room.x + room.w / 2 - x;
+    const dz = room.y + room.h / 2 - z;
+    const length = Math.hypot(dx, dz) || 1;
+    return { x: x + dx / length * 0.15, z: z + dz / length * 0.15, rotation: Math.atan2(-dx, -dz), width: Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * 0.75 };
+  }), [xf, currentRoom]);
 
   const walkTo = (px: number, py: number) => {
     walkPath(floorRoute(flat.tower, flat.floor, runtime.player, flat, { x: px, y: py }));
@@ -198,12 +210,13 @@ function FlatInterior({ flat, current }: { flat: Flat; current: boolean }) {
   return (
     <group position={[xf.gx, xf.baseY + 0.005, xf.gz]} rotation-y={xf.rot}>
       <HomeModel flat={flat} wallH={2.93} furnishing={furnishing} themeId={themeId} castShadow={current} open={designTop} onFloorClick={onFloor} />
+      {current && !night && windows.map((w, i) => <rectAreaLight key={`window-${i}`} position={[w.x, 1.9, w.z]} rotation={[0, w.rotation, 0]} width={w.width} height={1.5} intensity={3} color="#fff4df" />)}
       {designMode && <DesignLayer flat={flat} />}
       {xf.layout.segs.map((s, i) =>
         s.kind === 'door' || s.kind === 'entry' ? <Door key={i} seg={s} flat={flat} wood={theme.woodLight} /> : s.kind === 'slide' ? <SlideDoor key={i} seg={s} flat={flat} /> : null,
       )}
       {current && !designTop && effectiveFurnishing(flat, furnishing) !== 'bare' && f.fans.map((p, i) => <Fan key={i} x={p.x} z={p.z} />)}
-      {current && night && f.lights.slice(0, 6).map((p, i) => <pointLight key={i} position={[p.x, 2.6, p.z]} intensity={5} distance={7} decay={1.5} color="#ffd9a8" />)}
+      {current && night && f.lights.filter(p => { const r = xf.layout.rooms.find(r => r.name === currentRoom); return !r || (p.x >= r.x && p.x <= r.x + r.w && p.z >= r.y && p.z <= r.y + r.h); }).slice(0, 3).map((p, i) => <pointLight key={i} position={[p.x, 2.6, p.z]} intensity={7} distance={8} decay={2} color="#ffe3ba" />)}
       {current &&
         roomTags &&
         !touring &&
@@ -234,7 +247,7 @@ export function InteriorScene() {
         <FlatInterior key={f.id} flat={f} current={f.id === flat.id} />
       ))}
       <Corridor tower={TOWER_BY_ID.get(flat.tower)!} floor={flat.floor} />
-      {!night && <ambientLight intensity={0.3} />}
+      <ambientLight intensity={night ? 0.12 : 0.16} color={night ? '#d9c5b0' : '#f5ecdd'} />
     </group>
   );
 }

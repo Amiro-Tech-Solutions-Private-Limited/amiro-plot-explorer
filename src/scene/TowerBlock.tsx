@@ -283,6 +283,8 @@ export function TowerBlock({ tower }: { tower: TowerT }) {
     dirty.current = false;
     const e = ex.current;
     const onlyIso = (it: Inst) => (it.floor > cut ? 0 : isolated == null || it.floor === isolated ? 1 : 0);
+    // The detailed interior replaces every part of this floor's simplified exterior shell.
+    const shellVis = (it: Inst) => it.floor === hiddenFloor ? 0 : onlyIso(it);
     const flatVis = (it: Inst) => ((isolated != null && (it.floor !== isolated || e > 0.95)) || it.floor === hiddenFloor || it.floor > cut ? 0 : 1);
     setInstances(flatMesh.current, data.mass, e, flatVis);
     setInstances(notchMesh.current, data.notch, e, flatVis);
@@ -294,14 +296,14 @@ export function TowerBlock({ tower }: { tower: TowerT }) {
       (it, i) => (statusColors && matchSet.has(flats[i].id) && flatVis(it) ? 1 : 0),
       0.5,
     );
-    setInstances(slabMesh.current, data.slabs, e, onlyIso);
+    setInstances(slabMesh.current, data.slabs, e, shellVis);
     setInstances(coreMesh.current, data.cores, e, (it) => (it.floor === hiddenFloor || it.floor > cut ? 0 : isolated == null ? 1 : it.floor === isolated ? 0.35 : 0));
-    setInstances(balcMesh.current, data.balc, e, onlyIso);
-    setInstances(parapetMesh.current, data.parapet, e, onlyIso);
-    setInstances(glassMesh.current, data.glass, e, onlyIso);
-    setInstances(railMesh.current, data.rail, e, onlyIso);
-    setInstances(finMesh.current, data.fins, e, (it) => (isolated == null && it.floor < cut ? 1 : 0));
-    setInstances(plantMesh.current, data.plants, e, onlyIso);
+    setInstances(balcMesh.current, data.balc, e, shellVis);
+    setInstances(parapetMesh.current, data.parapet, e, shellVis);
+    setInstances(glassMesh.current, data.glass, e, shellVis);
+    setInstances(railMesh.current, data.rail, e, shellVis);
+    setInstances(finMesh.current, data.fins, e, (it) => (isolated == null && it.floor < cut && it.floor !== hiddenFloor ? 1 : 0));
+    setInstances(plantMesh.current, data.plants, e, shellVis);
     setInstances(acMesh.current, data.ac, e, (it) => (isolated == null && it.floor !== hiddenFloor ? onlyIso(it) : 0));
     if (slot.current) slot.current.visible = isolated == null && cut === Infinity;
     if (roof.current) {

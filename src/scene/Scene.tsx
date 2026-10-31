@@ -21,12 +21,12 @@ import { BeatFX, Director } from './Director';
 function Effects() {
   const quality = useStore((s) => s.quality);
   const mode = useStore((s) => s.mode);
-  if (quality === 'low') return null;
+  if (quality === 'low' && mode !== 'interior') return null;
   return (
-    <EffectComposer multisampling={4}>
-      <N8AO halfRes aoRadius={mode === 'interior' ? 0.8 : 3} intensity={mode === 'interior' ? 1.5 : 2.2} distanceFalloff={1} />
-      <Bloom mipmapBlur luminanceThreshold={1} intensity={0.6} />
-      <Vignette eskil={false} offset={0.25} darkness={0.45} />
+    <EffectComposer multisampling={quality === 'low' ? 0 : 4}>
+      <N8AO halfRes aoSamples={quality === 'low' ? 8 : 16} denoiseSamples={4} aoRadius={mode === 'interior' ? 0.65 : 3} intensity={mode === 'interior' ? 2 : 2.2} distanceFalloff={1} />
+      <Bloom mipmapBlur luminanceThreshold={1.3} intensity={mode === 'interior' ? 0.12 : 0.6} />
+      <Vignette eskil={false} offset={0.25} darkness={mode === 'interior' ? 0 : 0.45} />
     </EffectComposer>
   );
 }

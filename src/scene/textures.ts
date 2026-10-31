@@ -17,6 +17,44 @@ function finish(c: HTMLCanvasElement) {
 
 const floorTex: Partial<Record<'tile' | 'wood' | 'wet', THREE.CanvasTexture>> = {};
 
+const surfaceTex = new Map<string, THREE.CanvasTexture>();
+/** Neutral microdetail preserves the designer's colours while breaking up flat surfaces. */
+export function surfaceTexture(kind: 'linen' | 'oak' | 'plaster') {
+  const hit = surfaceTex.get(kind);
+  if (hit) return hit;
+  const N = 256;
+  const [c, g] = canvas(N, N);
+  let seed = 271;
+  const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  g.fillStyle = '#f3f1ed';
+  g.fillRect(0, 0, N, N);
+  if (kind === 'linen') {
+    for (let n = 0; n < N; n += 2) {
+      g.fillStyle = `rgba(95,88,78,${0.04 + random() * 0.09})`;
+      g.fillRect(n, 0, 1, N);
+      g.fillRect(0, n, N, 1);
+    }
+  } else if (kind === 'oak') {
+    for (let n = 0; n < 160; n++) {
+      const x = random() * N;
+      g.strokeStyle = `rgba(78,61,39,${0.025 + random() * 0.1})`;
+      g.lineWidth = 0.4 + random();
+      g.beginPath(); g.moveTo(x, 0);
+      g.bezierCurveTo(x + 8, N / 3, x - 6, N * 2 / 3, x, N);
+      g.stroke();
+    }
+  } else {
+    for (let n = 0; n < 12000; n++) {
+      g.fillStyle = `rgba(110,105,95,${random() * 0.045})`;
+      g.fillRect(random() * N, random() * N, 1, 1);
+    }
+  }
+  const texture = finish(c);
+  if (kind === 'linen') texture.repeat.set(3, 3);
+  surfaceTex.set(kind, texture);
+  return texture;
+}
+
 let marble: THREE.CanvasTexture | null = null;
 /** Calacatta-style marble with grey and gold veins (bathroom walls, backsplash). */
 export function marbleTexture() {

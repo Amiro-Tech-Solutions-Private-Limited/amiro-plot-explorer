@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: { watch: { ignored: ['**/.ref/**', '**/.node/**'] } },
   build: {
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
